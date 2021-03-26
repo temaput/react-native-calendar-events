@@ -476,11 +476,18 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
         String dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
         SimpleDateFormat sdf = new SimpleDateFormat(dateFormat);
         boolean skipTimezone = false;
+        boolean allDay = false;
+        TimeZone utc = TimeZone.getTimeZone("UTC");
         if(details.hasKey("skipAndroidTimezone") && details.getBoolean("skipAndroidTimezone")){
             skipTimezone = true;
         }
-        if(!skipTimezone){
+        if(details.hasKey("allDay") && details.getBoolean("allDay")){
+            allDay = true;
+        }
+        if(!allDay && !skipTimezone){
             sdf.setTimeZone(TimeZone.getTimeZone("GMT"));
+        } else if (allDay) {
+            sdf.setTimeZone(utc);
         }
         ContentResolver cr = reactContext.getContentResolver();
         ContentValues eventValues = new ContentValues();
@@ -599,17 +606,21 @@ public class RNCalendarEvents extends ReactContextBaseJavaModule implements Perm
         }
 
         if (details.hasKey("allDay")) {
-            eventValues.put(CalendarContract.Events.ALL_DAY, details.getBoolean("allDay") ? 1 : 0);
+            eventValues.put(CalendarContract.Events.ALL_DAY, allDay ? 1 : 0);
         }
 
-        if (details.hasKey("timeZone")) {
+        if (details.hasKey("timeZone") && !allDay) {
             eventValues.put(CalendarContract.Events.EVENT_TIMEZONE, details.getString("timeZone"));
+        } else if (allDay) {
+            eventValues.put(CalendarContract.Events.EVENT_TIMEZONE, utc);
         } else {
             eventValues.put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().getID());
         }
 
-        if (details.hasKey("endTimeZone")) {
+        if (details.hasKey("endTimeZone") && !allDay) {
             eventValues.put(CalendarContract.Events.EVENT_END_TIMEZONE, details.getString("endTimeZone"));
+        } else if (allDay) {
+            eventValues.put(CalendarContract.Events.EVENT_END_TIMEZONE, utc);
         } else {
             eventValues.put(CalendarContract.Events.EVENT_END_TIMEZONE, TimeZone.getDefault().getID());
         }
